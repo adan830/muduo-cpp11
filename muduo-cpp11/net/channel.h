@@ -98,6 +98,7 @@ class Channel {
 
   EventLoop* loop_;
   const int fd_;
+
   int events_;
   int revents_;  // it's the received event types of epoll or poll.
   int index_;  // used by Poller.

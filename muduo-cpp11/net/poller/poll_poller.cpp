@@ -29,7 +29,7 @@ PollPoller::~PollPoller() {
 
 Timestamp PollPoller::Poll(int timeout_ms, ChannelList* active_channels) {
   // XXX pollfds_ shouldn't change
-  int num_events = ::poll(&*pollfds_.begin(), pollfds_.size(), timeout_ms);
+  int num_events = ::poll(pollfds_.data(), pollfds_.size(), timeout_ms);
   int saved_errno = errno;
   Timestamp now(Timestamp::Now());
   if (num_events > 0) {
@@ -53,7 +53,8 @@ Timestamp PollPoller::Poll(int timeout_ms, ChannelList* active_channels) {
 void PollPoller::FillActiveChannels(int num_events,
                                     ChannelList* active_channels) const {
   for (PollFdList::const_iterator pfd = pollfds_.begin();
-      pfd != pollfds_.end() && num_events > 0; ++pfd) {
+       pfd != pollfds_.end() && num_events > 0;
+       ++pfd) {
     if (pfd->revents > 0) {
       --num_events;
       ChannelMap::const_iterator ch = channels_.find(pfd->fd);
@@ -80,7 +81,7 @@ void PollPoller::UpdateChannel(Channel* channel) {
     pfd.events = static_cast<short>(channel->events());
     pfd.revents = 0;
     pollfds_.push_back(pfd);
-    int idx = static_cast<int>(pollfds_.size())-1;
+    int idx = static_cast<int>(pollfds_.size()) - 1;
     channel->set_index(idx);
     channels_[pfd.fd] = channel;
   } else {
@@ -95,7 +96,7 @@ void PollPoller::UpdateChannel(Channel* channel) {
     pfd.revents = 0;
     if (channel->IsNoneEvent()) {
       // ignore this pollfd
-      pfd.fd = -channel->fd()-1;
+      pfd.fd = -channel->fd() - 1;
     }
   }
 }
@@ -118,7 +119,7 @@ void PollPoller::RemoveChannel(Channel* channel) {
     pollfds_.pop_back();
   } else {
     int channel_at_end = pollfds_.back().fd;
-    iter_swap(pollfds_.begin()+idx, pollfds_.end() - 1);
+    iter_swap(pollfds_.begin() + idx, pollfds_.end() - 1);
     if (channel_at_end < 0) {
       channel_at_end = -channel_at_end - 1;
     }

@@ -50,7 +50,7 @@ EPollPoller::~EPollPoller() {
 
 Timestamp EPollPoller::Poll(int timeout_ms, ChannelList* active_channels) {
   int num_events = ::epoll_wait(epollfd_,
-                                &*events_.begin(),
+                                events_.data(),
                                 static_cast<int>(events_.size()),
                                 timeout_ms);
   int saved_errno = errno;
