@@ -63,7 +63,7 @@ void ThreadPool::Stop() {
 }
 
 void ThreadPool::Run(const Task& task) {
-  assert(running);
+  assert(running_);
   if (!running_) {
     return;
   }
