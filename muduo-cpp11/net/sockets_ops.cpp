@@ -116,9 +116,9 @@ int Accept(int sockfd, struct sockaddr_in* addr) {
       case EAGAIN:
       case ECONNABORTED:
       case EINTR:
-      case EPROTO: // ???
+      case EPROTO:  // ???
       case EPERM:
-      case EMFILE: // per-process lmit of open file desctiptor ???
+      case EMFILE:  // per-process lmit of open file desctiptor ???
         // expected errors
         errno = saved_errno;
         break;

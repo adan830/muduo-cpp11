@@ -14,6 +14,7 @@
 #include <sys/eventfd.h>
 
 #include <functional>
+#include <vector>
 
 #include "muduo-cpp11/base/logging.h"
 #include "muduo-cpp11/net/channel.h"

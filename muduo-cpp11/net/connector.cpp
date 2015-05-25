@@ -13,6 +13,7 @@
 #include <assert.h>
 #include <errno.h>
 
+#include <algorithm>
 #include <functional>
 
 #include "muduo-cpp11/base/logging.h"
@@ -41,7 +42,7 @@ Connector::~Connector() {
 
 void Connector::Start() {
   connect_ = true;
-  loop_->RunInLoop(std::bind(&Connector::StartInLoop, this)); // FIXME: unsafe
+  loop_->RunInLoop(std::bind(&Connector::StartInLoop, this));  // FIXME: unsafe
 }
 
 void Connector::StartInLoop() {
@@ -56,7 +57,7 @@ void Connector::StartInLoop() {
 
 void Connector::Stop() {
   connect_ = false;
-  loop_->QueueInLoop(std::bind(&Connector::StopInLoop, this)); // FIXME: unsafe
+  loop_->QueueInLoop(std::bind(&Connector::StopInLoop, this));  // FIXME: unsafe
   // FIXME: cancel timer
 }
 
@@ -120,8 +121,8 @@ void Connector::Connecting(int sockfd) {
   SetState(kConnecting);
   assert(!channel_);
   channel_.reset(new Channel(loop_, sockfd));
-  channel_->set_write_callback(std::bind(&Connector::HandleWrite, this)); // FIXME: unsafe
-  channel_->set_error_callback(std::bind(&Connector::HandleError, this)); // FIXME: unsafe
+  channel_->set_write_callback(std::bind(&Connector::HandleWrite, this));  // FIXME: unsafe
+  channel_->set_error_callback(std::bind(&Connector::HandleError, this));  // FIXME: unsafe
 
   // channel_->Tie(shared_from_this()); is not working,
   // as channel_ is not managed by shared_ptr
@@ -133,7 +134,7 @@ int Connector::RemoveAndResetChannel() {
   channel_->Remove();
   int sockfd = channel_->fd();
   // Can't reset channel_ here, because we are inside Channel::handleEvent
-  loop_->QueueInLoop(std::bind(&Connector::ResetChannel, this)); // FIXME: unsafe
+  loop_->QueueInLoop(std::bind(&Connector::ResetChannel, this));  // FIXME: unsafe
   return sockfd;
 }
 
@@ -193,5 +194,5 @@ void Connector::Retry(int sockfd) {
   }
 }
 
-}  // net
-}  // muduo-cpp11
+}  // namespace net
+}  // namespace muduo_cpp11

@@ -118,7 +118,7 @@ class Buffer {
   }
 
   void RetrieveInt64() {
-    Retrieve(sizeof(int64_t));    
+    Retrieve(sizeof(int64_t));
   }
 
   void RetrieveInt32() {

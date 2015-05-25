@@ -10,7 +10,9 @@
 #include "muduo-cpp11/net/event_loop_thread_pool.h"
 
 #include <assert.h>
+
 #include <functional>
+#include <vector>
 
 #include "muduo-cpp11/base/logging.h"
 #include "muduo-cpp11/net/event_loop.h"

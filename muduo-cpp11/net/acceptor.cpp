@@ -35,7 +35,7 @@ Acceptor::Acceptor(EventLoop* loop,
       accept_channel_ptr_(new Channel(loop, accept_socket_ptr_->fd())),
       listenning_(false),
       idle_fd_(::open("/dev/null", O_RDONLY | O_CLOEXEC)) {
-  CHECK(idle_fd_ >= 0) << "Failed to check idle_fd_";
+  CHECK_GE(idle_fd_, 0) << "Failed to check idle_fd_";
 
   accept_socket_ptr_->set_reuseaddr(true);
   accept_socket_ptr_->set_reuseport(reuseport);

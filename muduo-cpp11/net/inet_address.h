@@ -9,8 +9,8 @@
 //
 // This is a public header file, it must only include public header files.
 
-#ifndef MUDUO_CPP11_NET_INETADDRESS_H_
-#define MUDUO_CPP11_NET_INETADDRESS_H_
+#ifndef MUDUO_CPP11_NET_INET_ADDRESS_H_
+#define MUDUO_CPP11_NET_INET_ADDRESS_H_
 
 #include <netinet/in.h>
 
@@ -37,7 +37,7 @@ class InetAddress {
 
   /// Constructs an endpoint with given struct @c sockaddr_in
   /// Mostly used when accepting new connections
-  InetAddress(const struct sockaddr_in& addr)
+  explicit InetAddress(const struct sockaddr_in& addr)
       : addr_(addr) {
   }
 
@@ -66,4 +66,4 @@ class InetAddress {
 }  // namespace net
 }  // namespace muduo_cpp11
 
-#endif  // MUDUO_CPP11_NET_INETADDRESS_H_
+#endif  // MUDUO_CPP11_NET_INET_ADDRESS_H_

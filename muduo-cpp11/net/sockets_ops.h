@@ -9,8 +9,8 @@
 //
 // This is an internal header file, you should not include this.
 
-#ifndef MUDUO_CPP11_NET_SOCKETSOPS_H_
-#define MUDUO_CPP11_NET_SOCKETSOPS_H_
+#ifndef MUDUO_CPP11_NET_SOCKETS_OPS_H_
+#define MUDUO_CPP11_NET_SOCKETS_OPS_H_
 
 #include <arpa/inet.h>
 
@@ -55,4 +55,4 @@ bool IsSelfConnect(int sockfd);
 }  // namespace net
 }  // namespace muduo_cpp11
 
-#endif  // MUDUO_CPP11_NET_SOCKETSOPS_H_
+#endif  // MUDUO_CPP11_NET_SOCKETS_OPS_H_

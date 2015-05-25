@@ -32,7 +32,7 @@ class Poller {
  public:
   typedef std::vector<Channel*> ChannelList;
 
-  Poller(EventLoop* loop);
+  explicit Poller(EventLoop* loop);
   virtual ~Poller();
 
   /// Polls the I/O events.

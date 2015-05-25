@@ -37,7 +37,7 @@ class TimerId {
   int64_t sequence_;
 };
 
-}  // namesapce net
+}  // namespace net
 }  // namespace muduo_cpp11
 
 #endif  // MUDUO_CPP11_NET_TIMER_ID_H_

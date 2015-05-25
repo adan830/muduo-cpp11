@@ -130,7 +130,7 @@ class TcpServer {
 
   ThreadInitCallback thread_init_callback_;
   std::atomic_flag started_;
-  
+
   // always in loop thread
   int next_conn_id_;
   ConnectionMap connections_;
