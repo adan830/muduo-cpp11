@@ -5,7 +5,7 @@
 // that can be found in the License file.
 
 // Author: Shuo Chen (chenshuo at chenshuo dot com)
-// Updated by Yifan Fan (yifan.fan@dian.fm)
+// Updated by Yifan Fan (yifan.fan.1983@gmail.com)
 
 #include "muduo-cpp11/net/poller/poll_poller.h"
 

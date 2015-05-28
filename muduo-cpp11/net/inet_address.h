@@ -5,7 +5,7 @@
 // that can be found in the License file.
 
 // Author: Shuo Chen (chenshuo at chenshuo dot com)
-// Changed by Yifan Fan (yifan.fan@dian.fm)
+// Changed by Yifan Fan (yifan.fan.1983@gmail.com)
 //
 // This is a public header file, it must only include public header files.
 
@@ -37,7 +37,7 @@ class InetAddress {
 
   /// Constructs an endpoint with given struct @c sockaddr_in
   /// Mostly used when accepting new connections
-  explicit InetAddress(const struct sockaddr_in& addr)
+  InetAddress(const struct sockaddr_in& addr)
       : addr_(addr) {
   }
 

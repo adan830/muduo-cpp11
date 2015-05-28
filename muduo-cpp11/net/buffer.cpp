@@ -5,7 +5,7 @@
 // that can be found in the License file.
 
 // Author: Shuo Chen (chenshuo at chenshuo dot com)
-// Changed by Yifan Fan (yifan.fan@dian.fm)
+// Changed by Yifan Fan (yifan.fan.1983@gmail.com)
 //
 
 #include "muduo-cpp11/net/buffer.h"
