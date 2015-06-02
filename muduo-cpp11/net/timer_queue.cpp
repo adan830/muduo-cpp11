@@ -14,7 +14,9 @@
 #include "muduo-cpp11/net/timer_queue.h"
 
 #include <assert.h>
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
 #include <sys/timerfd.h>
+#endif
 
 #include <algorithm>
 #include <functional>
@@ -31,15 +33,7 @@ namespace net {
 
 namespace detail {
 
-int CreateTimerfd() {
-  int timerfd = ::timerfd_create(CLOCK_MONOTONIC,
-                                 TFD_NONBLOCK | TFD_CLOEXEC);
-  if (timerfd < 0) {
-    LOG(FATAL) << "Failed in timerfd_create";
-  }
-  return timerfd;
-}
-
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
 struct timespec HowMuchTimeFromNow(Timestamp when) {
   int64_t microseconds = when.microseconds_since_epoch()
                          - Timestamp::Now().microseconds_since_epoch();
@@ -55,14 +49,13 @@ struct timespec HowMuchTimeFromNow(Timestamp when) {
   return ts;
 }
 
-void ReadTimerfd(int timerfd, Timestamp now) {
-  uint64_t howmany;
-  ssize_t n = ::read(timerfd, &howmany, sizeof howmany);
-  VLOG(1) << "TimerQueue::HandleRead() " << howmany << " at " << now.ToString();
-  if (n != sizeof howmany) {
-    LOG(ERROR) << "TimerQueue::HandleRead() reads " << n
-               << " bytes instead of 8";
+int CreateTimerfd() {
+  int timerfd = ::timerfd_create(CLOCK_MONOTONIC,
+                                 TFD_NONBLOCK | TFD_CLOEXEC);
+  if (timerfd < 0) {
+    LOG(FATAL) << "Failed in timerfd_create";
   }
+  return timerfd;
 }
 
 void ResetTimerfd(int timerfd, Timestamp expiration) {
@@ -78,24 +71,41 @@ void ResetTimerfd(int timerfd, Timestamp expiration) {
   }
 }
 
+void ReadTimerfd(int timerfd, Timestamp now) {
+  uint64_t howmany;
+  ssize_t n = ::read(timerfd, &howmany, sizeof howmany);
+  VLOG(1) << "TimerQueue::HandleRead() " << howmany << " at " << now.ToString();
+  if (n != sizeof howmany) {
+    LOG(ERROR) << "TimerQueue::HandleRead() reads " << n
+               << " bytes instead of 8";
+  }
+}
+#endif
+
 }  // namespace detail
 
 TimerQueue::TimerQueue(EventLoop* loop)
     : loop_(loop),
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
       timerfd_(detail::CreateTimerfd()),
       timerfd_channel_(loop, timerfd_),
+#endif
       timers_(),
       calling_expired_timers_(false) {
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
   timerfd_channel_.set_read_callback(
       std::bind(&TimerQueue::HandleRead, this));
   // we are always reading the timerfd, we disarm it with timerfd_settime.
   timerfd_channel_.EnableReading();
+#endif
 }
 
 TimerQueue::~TimerQueue() {
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
   timerfd_channel_.DisableAll();
   timerfd_channel_.Remove();
   ::close(timerfd_);
+#endif
   // do not remove channel, since we're in EventLoop::dtor();
   for (TimerList::iterator it = timers_.begin();
       it != timers_.end(); ++it) {
@@ -119,11 +129,36 @@ void TimerQueue::Cancel(TimerId timerId) {
 
 void TimerQueue::AddTimerInLoop(Timer* timer) {
   loop_->AssertInLoopThread();
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
   bool earliest_changed = Insert(timer);
   if (earliest_changed) {
     detail::ResetTimerfd(timerfd_, timer->expiration());
   }
+#else
+  Insert(timer);
+#endif
 }
+
+#if defined(__MACH__) || defined(__ANDROID_API__)
+int HowMuchTimeFromNow(Timestamp when) {
+  int64_t microseconds = when.microseconds_since_epoch()
+                         - Timestamp::Now().microseconds_since_epoch();
+  if (microseconds < 1000) {
+    LogError("timerfd_settime()");
+    microseconds = 1000;
+  }
+  return static_cast<int>(microseconds / 1000);
+}
+
+int TimerQueue::GetTimeout() const {
+  loop_->AssertInLoopThread();
+  if (timers_.empty()) {
+    return 10000;
+  } else {
+    return HowMuchTimeFromNow(timers_.begin()->second->expiration());
+  }
+}
+#endif
 
 void TimerQueue::CancelInLoop(TimerId timerId) {
   loop_->AssertInLoopThread();
@@ -141,10 +176,17 @@ void TimerQueue::CancelInLoop(TimerId timerId) {
   assert(timers_.size() == active_timers_.size());
 }
 
+#if defined(__MACH__) || defined(__ANDROID_API__)
+void TimerQueue::ProcessTimers() {
+#else
 void TimerQueue::HandleRead() {
+#endif
   loop_->AssertInLoopThread();
   Timestamp now(Timestamp::Now());
+
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
   detail::ReadTimerfd(timerfd_, now);
+#endif
 
   std::vector<Entry> expired = GetExpired(now);
 
@@ -200,9 +242,11 @@ void TimerQueue::Reset(const std::vector<Entry>& expired, Timestamp now) {
     next_expire = timers_.begin()->second->expiration();
   }
 
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
   if (next_expire.Valid()) {
     detail::ResetTimerfd(timerfd_, next_expire);
   }
+#endif
 }
 
 bool TimerQueue::Insert(Timer* timer) {

@@ -16,7 +16,9 @@
 #include <memory>
 #include <string>
 
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
 #include <boost/any.hpp>
+#endif
 
 #include "muduo-cpp11/base/macros.h"
 #include "muduo-cpp11/base/string_piece.h"
@@ -92,6 +94,7 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
   void ForceCloseWithDelay(double seconds);
   void SetTcpNoDelay(bool on);
 
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
   void set_context(const boost::any& context) {
     context_ = context;
   }
@@ -103,6 +106,7 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
   boost::any* mutable_context() {
     return &context_;
   }
+#endif
 
   void set_connection_callback(const ConnectionCallback& cb) {
     connection_callback_ = cb;
@@ -180,7 +184,9 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
   Buffer input_buffer_;
   Buffer output_buffer_;  // FIXME: use list<Buffer> as output buffer.
 
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
   boost::any context_;
+#endif
 
   // FIXME: creationTime_, lastReceiveTime_
   //        bytesReceived_, bytesSent_

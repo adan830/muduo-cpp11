@@ -11,6 +11,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/socket.h>
 
 // #include <sys/types.h>
 // #include <sys/stat.h>
@@ -35,7 +36,11 @@ Acceptor::Acceptor(EventLoop* loop,
       accept_channel_ptr_(new Channel(loop, accept_socket_ptr_->fd())),
       listenning_(false),
       idle_fd_(::open("/dev/null", O_RDONLY | O_CLOEXEC)) {
+#if defined(__MACH__) || defined(__ANDROID_API__)
+  CHECK(idle_fd_ >= 0, "Failed to check idle_fd_");
+#else
   CHECK_GE(idle_fd_, 0) << "Failed to check idle_fd_";
+#endif
 
   accept_socket_ptr_->set_reuseaddr(true);
   accept_socket_ptr_->set_reuseport(reuseport);
@@ -72,7 +77,11 @@ void Acceptor::HandleRead() {
       sockets::Close(connfd);
     }
   } else {
+#if defined(__MACH__) || defined(__ANDROID_API__)
+    LogError("Accept failed in Acceptor::HandleRead");
+#else
     LOG(ERROR) << "Accept failed in Acceptor::HandleRead";
+#endif
 
     // Read the section named "The special problem of
     // accept()ing when you can't" in libev's doc.

@@ -53,11 +53,13 @@ class InetAddress {
   uint32_t IpNetEndian() const { return addr_.sin_addr.s_addr; }
   uint16_t PortNetEndian() const { return addr_.sin_port; }
 
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
   // resolve hostname to IP address, not changing port or sin_family
   // return true on success.
   // thread safe
   static bool Resolve(StringArg hostname, InetAddress* result);
-  // static std::vector<InetAddress> resolveAll(const char* hostname, uint16_t port = 0);
+  // static std::vector<InetAddress> ResolveAll(const char* hostname, uint16_t port = 0);
+#endif
 
  private:
   struct sockaddr_in addr_;

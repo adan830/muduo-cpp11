@@ -33,7 +33,12 @@ EventLoopThreadPool::~EventLoopThreadPool() {
 }
 
 void EventLoopThreadPool::set_thread_num(int num_threads) {
+#if defined(__MACH__) || defined(__ANDROID_API__)
+  CHECK(num_threads >= 0, "num_threads should >= 0");
+#else
   CHECK_GE(num_threads, 0) << "num_threads should >= 0";
+#endif
+
   num_threads_ = num_threads;
 }
 

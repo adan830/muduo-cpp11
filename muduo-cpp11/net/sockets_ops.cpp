@@ -15,17 +15,22 @@
 #include <stdio.h>  // snprintf
 #include <strings.h>  // bzero
 #include <sys/socket.h>
+#if defined(__MACH__) || defined(__ANDROID_API__)
+#include <sys/uio.h>  // readv
+#endif
 #include <unistd.h>
 
 #include "muduo-cpp11/base/logging.h"
 #include "muduo-cpp11/base/type_conversion.h"
 #include "muduo-cpp11/net/endian.h"
 
-namespace {
+namespace muduo_cpp11 {
+namespace net {
+namespace sockets {
 
 typedef struct sockaddr SA;
 
-#if VALGRIND || defined (NO_ACCEPT4)
+#if VALGRIND || defined (NO_ACCEPT4) || defined(__MACH__) || defined(__ANDROID_API__)
 void SetNonBlockAndCloseOnExec(int sockfd) {
   // non-block
   int flags = ::fcntl(sockfd, F_GETFL, 0);
@@ -43,11 +48,7 @@ void SetNonBlockAndCloseOnExec(int sockfd) {
 }
 #endif
 
-}  // namespace
 
-namespace muduo_cpp11 {
-namespace net {
-namespace sockets {
 
 const struct sockaddr* sockaddr_cast(const struct sockaddr_in* addr) {
   return static_cast<const struct sockaddr*>(implicit_cast<const void*>(addr));
@@ -66,10 +67,10 @@ struct sockaddr_in* sockaddr_in_cast(struct sockaddr* addr) {
 }
 
 int CreateNonblockingOrDie() {
-#if VALGRIND
+#if VALGRIND || defined(__MACH__) || defined(__ANDROID_API__)
   int sockfd = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (sockfd < 0) {
-    LOG(FATAL) << "sockets::CreateNonblockingOrDie";
+    LogFatal("sockets::CreateNonblockingOrDie");
   }
 
   SetNonBlockAndCloseOnExec(sockfd);
@@ -87,20 +88,28 @@ void BindOrDie(int sockfd, const struct sockaddr_in& addr) {
                    sockaddr_cast(&addr),
                    static_cast<socklen_t>(sizeof addr));
   if (ret < 0) {
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
     LOG(FATAL) << "sockets::BindOrDie";
+#else
+    LogFatal("sockets::BindOrDie");
+#endif
   }
 }
 
 void ListenOrDie(int sockfd) {
   int ret = ::listen(sockfd, SOMAXCONN);
   if (ret < 0) {
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
     LOG(FATAL) << "sockets::ListenOrDie";
+#else
+    LogFatal("sockets::ListenOrDie");
+#endif
   }
 }
 
 int Accept(int sockfd, struct sockaddr_in* addr) {
   socklen_t addrlen = static_cast<socklen_t>(sizeof *addr);
-#if VALGRIND  || defined (NO_ACCEPT4)
+#if VALGRIND  || defined (NO_ACCEPT4) || defined(__MACH__) || defined(__ANDROID_API__)
   int connfd = ::accept(sockfd, sockaddr_cast(addr), &addrlen);
   SetNonBlockAndCloseOnExec(connfd);
 #else
@@ -111,7 +120,13 @@ int Accept(int sockfd, struct sockaddr_in* addr) {
 #endif
   if (connfd < 0) {
     int saved_errno = errno;
+
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
     LOG(ERROR) << "Socket::Accept";
+#else
+    LogError("Socket::Accept");
+#endif
+
     switch (saved_errno) {
       case EAGAIN:
       case ECONNABORTED:
@@ -131,10 +146,18 @@ int Accept(int sockfd, struct sockaddr_in* addr) {
       case ENOTSOCK:
       case EOPNOTSUPP:
         // unexpected errors
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
         LOG(FATAL) << "unexpected error of ::accept " << saved_errno;
+#else
+        LogFatal("unexpected error of ::accept %d", saved_errno);
+#endif
         break;
       default:
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
         LOG(FATAL) << "unknown error of ::accept " << saved_errno;
+#else
+        LogFatal("unknown error of ::accept %d", saved_errno);
+#endif
         break;
     }
   }
@@ -161,13 +184,21 @@ ssize_t Write(int sockfd, const void *buf, size_t count) {
 
 void Close(int sockfd) {
   if (::close(sockfd) < 0) {
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
     LOG(ERROR) << "sockets::Close";
+#else
+    LogError("sockets::Close");
+#endif
   }
 }
 
 void ShutdownWrite(int sockfd) {
   if (::shutdown(sockfd, SHUT_WR) < 0) {
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
     LOG(ERROR) << "sockets::ShutdownWrite";
+#else
+    LogError("sockets::ShutdownWrite");
+#endif
   }
 }
 
@@ -195,7 +226,11 @@ void FromIpPort(const char* ip,
   addr->sin_family = AF_INET;
   addr->sin_port = HostToNetwork16(port);
   if (::inet_pton(AF_INET, ip, &addr->sin_addr) <= 0) {
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
     LOG(ERROR) << "sockets::FromIpPort";
+#else
+    LogError("sockets::FromIpPort");
+#endif
   }
 }
 
@@ -215,7 +250,11 @@ struct sockaddr_in GetLocalAddr(int sockfd) {
   bzero(&localaddr, sizeof localaddr);
   socklen_t addrlen = static_cast<socklen_t>(sizeof localaddr);
   if (::getsockname(sockfd, sockaddr_cast(&localaddr), &addrlen) < 0) {
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
     LOG(ERROR) << "sockets::GetLocalAddr";
+#else
+    LogError("sockets::GetLocalAddr");
+#endif
   }
   return localaddr;
 }
@@ -225,7 +264,11 @@ struct sockaddr_in GetPeerAddr(int sockfd) {
   bzero(&peeraddr, sizeof peeraddr);
   socklen_t addrlen = static_cast<socklen_t>(sizeof peeraddr);
   if (::getpeername(sockfd, sockaddr_cast(&peeraddr), &addrlen) < 0) {
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
     LOG(ERROR) << "sockets::GetPeerAddr";
+#else
+    LogError("sockets::GetPeerAddr");
+#endif
   }
   return peeraddr;
 }

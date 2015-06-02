@@ -32,11 +32,19 @@ Connector::Connector(EventLoop* loop, const InetAddress& server_addr)
       connect_(false),
       state_(kDisconnected),
       retry_delay_ms_(kInitRetryDelayMs) {
+#if defined(__MACH__) || defined(__ANDROID_API__)
+  // 
+#else
   DLOG(INFO) << "ctor[" << this << "]";
+#endif
 }
 
 Connector::~Connector() {
+#if defined(__MACH__) || defined(__ANDROID_API__)
+  // 
+#else
   DLOG(INFO) << "dtor[" << this << "]";
+#endif
   assert(!channel_);
 }
 
@@ -51,7 +59,11 @@ void Connector::StartInLoop() {
   if (connect_) {
     Connect();
   } else {
+#if defined(__MACH__) || defined(__ANDROID_API__)
+    //
+#else
     DLOG(INFO) << "do not connect";
+#endif
   }
 }
 
@@ -97,12 +109,20 @@ void Connector::Connect() {
     case EBADF:
     case EFAULT:
     case ENOTSOCK:
+#if defined(__MACH__) || defined(__ANDROID_API__)
+      LogError("connect error in Connector::startInLoop %d", saved_errno);
+#else
       LOG(ERROR) << "connect error in Connector::startInLoop " << saved_errno;
+#endif
       sockets::Close(sockfd);
       break;
 
     default:
+#if defined(__MACH__) || defined(__ANDROID_API__)
+      LogError("Unexpected error in Connector::startInLoop %d", saved_errno);
+#else
       LOG(ERROR) << "Unexpected error in Connector::startInLoop " << saved_errno;
+#endif
       sockets::Close(sockfd);
       // connectErrorCallback_();
       break;
@@ -143,17 +163,30 @@ void Connector::ResetChannel() {
 }
 
 void Connector::HandleWrite() {
+#if defined(__MACH__) || defined(__ANDROID_API__)
+  LogTrace("Connector::HandleWrite %d", state_.load());
+#else
   VLOG(1) << "Connector::HandleWrite " << state_;
+#endif
 
   if (state_ == kConnecting) {
     int sockfd = RemoveAndResetChannel();
     int err = sockets::GetSocketError(sockfd);
     if (err) {
-      LOG(WARNING) << "Connector::HandleWrite - SO_ERROR = "
-                   << err << " " << strerror_tl(err);
+#if defined(__MACH__) || defined(__ANDROID_API__)
+      LogWarn("Connector::HandleWrite - SO_ERROR = %d %s", err, strerror_tl(err).c_str());
+#else
+      LOG(WARNING) << "Connector::HandleWrite - SO_ERROR = " << err << " " << strerror_tl(err);
+#endif
+
       Retry(sockfd);
     } else if (sockets::IsSelfConnect(sockfd)) {
+#if defined(__MACH__) || defined(__ANDROID_API__)
+      LogWarn("Connector::HandleWrite - Self connect");
+#else
       LOG(WARNING) << "Connector::HandleWrite - Self connect";
+#endif
+
       Retry(sockfd);
     } else {
       SetState(kConnected);
@@ -170,11 +203,22 @@ void Connector::HandleWrite() {
 }
 
 void Connector::HandleError() {
+#if defined(__MACH__) || defined(__ANDROID_API__)
+  LogError("Connector::handleError state=%d", state_.load());
+#else
   LOG(ERROR) << "Connector::handleError state=" << state_;
+#endif
+
   if (state_ == kConnecting) {
     int sockfd = RemoveAndResetChannel();
     int err = sockets::GetSocketError(sockfd);
+
+#if defined(__MACH__) || defined(__ANDROID_API__)
+    LogTrace("SO_ERROR = %d %s", err, strerror_tl(err).c_str());
+#else
     VLOG(1) << "SO_ERROR = " << err << " " << strerror_tl(err);
+#endif
+
     Retry(sockfd);
   }
 }
@@ -184,13 +228,20 @@ void Connector::Retry(int sockfd) {
   SetState(kDisconnected);
 
   if (connect_) {
-    LOG(INFO) << "Connector::Retry - Retry connecting to " << server_addr_.ToIpPort()
-             << " in " << retry_delay_ms_ << " milliseconds. ";
+#if defined(__MACH__) || defined(__ANDROID_API__)
+    LogInfo("Connector::Retry - Retry connecting to %s in %d milliseconds. ", server_addr_.ToIpPort().c_str(), retry_delay_ms_ );
+#else
+    LOG(INFO) << "Connector::Retry - Retry connecting to " << server_addr_.ToIpPort() << " in " << retry_delay_ms_ << " milliseconds. ";
+#endif
+
     loop_->RunAfter(retry_delay_ms_/1000.0,
                     std::bind(&Connector::StartInLoop, shared_from_this()));
     retry_delay_ms_ = std::min(retry_delay_ms_ * 2, kMaxRetryDelayMs);
   } else {
+#if defined(__MACH__) || defined(__ANDROID_API__)
+#else
     DLOG(INFO) << "do not connect";
+#endif
   }
 }
 

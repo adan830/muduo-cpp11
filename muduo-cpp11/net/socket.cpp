@@ -13,10 +13,12 @@
 #include <strings.h>  // bzero
 #include <stdio.h>  // snprintf
 
+#include <sys/types.h>
+#include <sys/socket.h>
+
 #include "muduo-cpp11/base/logging.h"
 #include "muduo-cpp11/net/inet_address.h"
 #include "muduo-cpp11/net/sockets_ops.h"
-
 
 namespace muduo_cpp11 {
 namespace net {
@@ -26,12 +28,19 @@ Socket::~Socket() {
 }
 
 bool Socket::GetTcpInfo(struct tcp_info* tcpi) const {
+#if defined(__MACH__) || defined(__ANDROID_API__)
+  return false;
+#else
   socklen_t len = sizeof(*tcpi);
   bzero(tcpi, len);
   return ::getsockopt(sockfd_, SOL_TCP, TCP_INFO, tcpi, &len) == 0;
+#endif
 }
 
 bool Socket::GetTcpInfoString(char* buf, int len) const {
+#if defined(__MACH__) || defined(__ANDROID_API__)
+  return false;
+#else
   struct tcp_info tcpi;
   bool ok = GetTcpInfo(&tcpi);
   if (ok) {
@@ -53,6 +62,7 @@ bool Socket::GetTcpInfoString(char* buf, int len) const {
              tcpi.tcpi_total_retrans);  // Total retransmits for entire connection
   }
   return ok;
+#endif
 }
 
 void Socket::BindAddress(const InetAddress& addr) {
@@ -97,11 +107,19 @@ void Socket::set_reuseport(bool on) {
   int ret = ::setsockopt(sockfd_, SOL_SOCKET, SO_REUSEPORT,
                          &optval, static_cast<socklen_t>(sizeof optval));
   if (ret < 0) {
+#if defined(__MACH__) || defined(__ANDROID_API__)
+    LogError("SO_REUSEPORT failed.");
+#else
     LOG(ERROR) << "SO_REUSEPORT failed.";
+#endif
   }
 #else
   if (on) {
+#if defined(__MACH__) || defined(__ANDROID_API__)
+    LogError("SO_REUSEPORT is not supported.");
+#else
     LOG(ERROR) << "SO_REUSEPORT is not supported.";
+#endif
   }
 #endif
 }

@@ -77,11 +77,19 @@ void Channel::HandleEvent(Timestamp receive_time) {
 
 void Channel::HandleEventWithGuard(Timestamp receive_time) {
   event_handling_ = true;
+#if defined(__MACH__) || defined(__ANDROID_API__)
+  LogTrace("%s", REventsToString().c_str());
+#else
   VLOG(1) << REventsToString();
+#endif
 
   if ((revents_ & POLLHUP) && !(revents_ & POLLIN)) {
     if (log_hup_) {
+#if defined(__MACH__) || defined(__ANDROID_API__)
+      LogWarn("Channel::handle_event() POLLHUP");
+#else
       LOG(WARNING) << "Channel::handle_event() POLLHUP";
+#endif
     }
 
     if (close_callback_) {
@@ -90,12 +98,20 @@ void Channel::HandleEventWithGuard(Timestamp receive_time) {
   }
 
   if (revents_ & POLLNVAL) {
+#if defined(__MACH__) || defined(__ANDROID_API__)
+    LogWarn("Channel::handle_event() POLLNVAL");
+#else
     LOG(WARNING) << "Channel::handle_event() POLLNVAL";
+#endif
   }
 
   if (revents_ & (POLLERR | POLLNVAL)) {
     if (error_callback_) error_callback_();
   }
+
+#ifndef POLLRDHUP
+  const int POLLRDHUP = 0;
+#endif
 
   if (revents_ & (POLLIN | POLLPRI | POLLRDHUP)) {
     if (read_callback_) read_callback_(receive_time);
@@ -123,7 +139,9 @@ string Channel::EventsToString(int fd, int ev) {
   if (ev & POLLPRI) oss << "PRI ";
   if (ev & POLLOUT) oss << "OUT ";
   if (ev & POLLHUP) oss << "HUP ";
+#ifdef POLLRDHUP
   if (ev & POLLRDHUP) oss << "RDHUP ";
+#endif
   if (ev & POLLERR) oss << "ERR ";
   if (ev & POLLNVAL) oss << "NVAL ";
   return oss.str().c_str();

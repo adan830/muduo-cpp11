@@ -22,6 +22,9 @@ namespace sockets {
 /// Creates a non-blocking socket file descriptor,
 /// abort if any error.
 int CreateNonblockingOrDie();
+#if defined(__MACH__) || defined(__ANDROID_API__)
+void SetNonBlockAndCloseOnExec(int sockfd);
+#endif
 
 int Connect(int sockfd, const struct sockaddr_in& addr);
 void BindOrDie(int sockfd, const struct sockaddr_in& addr);

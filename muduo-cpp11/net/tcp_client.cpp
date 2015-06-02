@@ -58,11 +58,15 @@ TcpClient::TcpClient(EventLoop* loop,
       next_conn_id_(1) {
   connector_->set_new_connection_callback(std::bind(&TcpClient::NewConnection, this, std::placeholders::_1));
   // FIXME set_connect_failed_callback
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
   LOG(INFO) << "TcpClient::TcpClient[" << name_ << "] - connector " << connector_.get();
+#endif
 }
 
 TcpClient::~TcpClient() {
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
   LOG(INFO) << "TcpClient::~TcpClient[" << name_ << "] - connector " << connector_.get();
+#endif
 
   TcpConnectionPtr conn;
   bool unique = false;
@@ -90,8 +94,11 @@ TcpClient::~TcpClient() {
 
 void TcpClient::Connect() {
   // FIXME: check state
-  LOG(INFO) << "TcpClient::connect[" << name_ << "] - connecting to "
-            << connector_->server_address().ToIpPort();
+#if defined(__MACH__) || defined(__ANDROID_API__)
+  LogInfo("TcpClient::connect[%s] - connecting to %s", name_.c_str(), connector_->server_address().ToIpPort().c_str());
+#else
+  LOG(INFO) << "TcpClient::connect[" << name_ << "] - connecting to " << connector_->server_address().ToIpPort();
+#endif
   connect_ = true;
   connector_->Start();
 }
@@ -155,8 +162,11 @@ void TcpClient::RemoveConnection(const TcpConnectionPtr& conn) {
   loop_->QueueInLoop(std::bind(&TcpConnection::ConnectDestroyed, conn));
 
   if (retry_ && connect_) {
-    LOG(INFO) << "TcpClient::connect[" << name_ << "] - Reconnecting to "
-              << connector_->server_address().ToIpPort();
+#if defined(__MACH__) || defined(__ANDROID_API__)
+    LogInfo("TcpClient::connect[%s] - Reconnecting to %s", name_.c_str(), connector_->server_address().ToIpPort().c_str());
+#else
+    LOG(INFO) << "TcpClient::connect[" << name_ << "] - Reconnecting to " << connector_->server_address().ToIpPort();
+#endif
     connector_->Restart();
   }
 }

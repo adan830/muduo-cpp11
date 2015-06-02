@@ -18,7 +18,9 @@
 #include <functional>
 #include <vector>
 
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
 #include <boost/any.hpp>
+#endif
 
 #include "muduo-cpp11/base/macros.h"
 #include "muduo-cpp11/base/timestamp.h"
@@ -130,6 +132,7 @@ class EventLoop {
     return event_handling_;
   }
 
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
   // context
   void set_context(const boost::any& context) {
     context_ = context;
@@ -142,8 +145,11 @@ class EventLoop {
   boost::any* mutable_context() {
     return &context_;
   }
+#endif
 
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
   static EventLoop* GetEventLoopOfCurrentThread();
+#endif
 
  private:
   void AbortNotInLoopThread();
@@ -166,13 +172,20 @@ class EventLoop {
   Timestamp poll_return_time_;
   std::unique_ptr<Poller> poller_;
   std::unique_ptr<TimerQueue> timer_queue_;
+
+#if defined(__MACH__) || defined(__ANDROID_API__)
+  int wakeup_fd_[2];
+#else
   int wakeup_fd_;
+#endif
 
   // unlike in TimerQueue, which is an internal class,
   // we don't expose Channel to client.
   std::unique_ptr<Channel> wakeup_channel_;
 
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
   boost::any context_;
+#endif
 
   // scratch variables
   ChannelList active_channels_;

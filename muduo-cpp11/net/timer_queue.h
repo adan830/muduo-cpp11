@@ -48,6 +48,11 @@ class TimerQueue {
 
   void Cancel(TimerId timerId);
 
+#if defined(__MACH__) || defined(__ANDROID_API__)
+  int GetTimeout() const;
+  void ProcessTimers();
+#endif
+
  private:
 
   // FIXME: use unique_ptr<Timer> instead of raw pointers.
@@ -59,8 +64,10 @@ class TimerQueue {
   void AddTimerInLoop(Timer* timer);
   void CancelInLoop(TimerId timerId);
 
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
   // called when timerfd alarms
   void HandleRead();
+#endif
 
   // move out all expired timers
   std::vector<Entry> GetExpired(Timestamp now);
@@ -69,8 +76,10 @@ class TimerQueue {
   bool Insert(Timer* timer);
 
   EventLoop* loop_;
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
   const int timerfd_;
   Channel timerfd_channel_;
+#endif
 
   // Timer list sorted by expiration
   TimerList timers_;

@@ -13,7 +13,35 @@
 #define MUDUO_CPP11_NET_ENDIAN_H_
 
 #include <stdint.h>
+
+#if defined(__MACH__)
+#include <libkern/OSByteOrder.h>
+
+#define htobe16(x) OSSwapHostToBigInt16(x)
+#define htole16(x) OSSwapHostToLittleInt16(x)
+#define be16toh(x) OSSwapBigToHostInt16(x)
+#define le16toh(x) OSSwapLittleToHostInt16(x)
+ 
+#define htobe32(x) OSSwapHostToBigInt32(x)
+#define htole32(x) OSSwapHostToLittleInt32(x)
+#define be32toh(x) OSSwapBigToHostInt32(x)
+#define le32toh(x) OSSwapLittleToHostInt32(x)
+ 
+#define htobe64(x) OSSwapHostToBigInt64(x)
+#define htole64(x) OSSwapHostToLittleInt64(x)
+#define be64toh(x) OSSwapBigToHostInt64(x)
+#define le64toh(x) OSSwapLittleToHostInt64(x)
+#elif defined(__ANDROID_API__)
 #include <endian.h>
+#define be16toh(x) htobe16(x)
+#define be32toh(x) htobe32(x)
+#define be64toh(x) htobe64(x)
+#define le16toh(x) htole16(x)
+#define le32toh(x) htole32(x)
+#define le64toh(x) htole64(x)
+#else
+#include <endian.h>
+#endif
 
 namespace muduo_cpp11 {
 namespace net {
@@ -24,8 +52,12 @@ namespace sockets {
 #if defined(__clang__) || __GNUC_MINOR__ >= 6
 #pragma GCC diagnostic push
 #endif
+
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
 #pragma GCC diagnostic ignored "-Wconversion"
 #pragma GCC diagnostic ignored "-Wold-style-cast"
+#endif
+
 inline uint64_t HostToNetwork64(uint64_t host64) {
   return htobe64(host64);
 }

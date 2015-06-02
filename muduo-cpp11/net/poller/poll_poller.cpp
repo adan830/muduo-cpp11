@@ -33,18 +33,26 @@ Timestamp PollPoller::Poll(int timeout_ms, ChannelList* active_channels) {
   int saved_errno = errno;
   Timestamp now(Timestamp::Now());
   if (num_events > 0) {
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
     if (VLOG_IS_ON(1)) {
       LOG(INFO) << num_events << " events happended";
     }
+#endif
     FillActiveChannels(num_events, active_channels);
   } else if (num_events == 0) {
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
     if (VLOG_IS_ON(1)) {
       LOG(INFO) << " nothing happended";
     }
+#endif
   } else {
     if (saved_errno != EINTR) {
       errno = saved_errno;
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
       LOG(ERROR) << "PollPoller::poll()";
+#else
+      LogError("PollPoller::poll()");
+#endif
     }
   }
   return now;
@@ -70,9 +78,13 @@ void PollPoller::FillActiveChannels(int num_events,
 
 void PollPoller::UpdateChannel(Channel* channel) {
   Poller::AssertInLoopThread();
+
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
   if (VLOG_IS_ON(1)) {
     LOG(INFO) << "fd = " << channel->fd() << " events = " << channel->events();
   }
+#endif
+
   if (channel->index() < 0) {
     // a new one, add to pollfds_
     assert(channels_.find(channel->fd()) == channels_.end());
@@ -103,9 +115,13 @@ void PollPoller::UpdateChannel(Channel* channel) {
 
 void PollPoller::RemoveChannel(Channel* channel) {
   Poller::AssertInLoopThread();
+
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
   if (VLOG_IS_ON(1)) {
     LOG(INFO) << "fd = " << channel->fd();
   }
+#endif
+
   assert(channels_.find(channel->fd()) != channels_.end());
   assert(channels_[channel->fd()] == channel);
   assert(channel->IsNoneEvent());

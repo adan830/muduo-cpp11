@@ -24,10 +24,14 @@
 using std::string;
 
 // INADDR_ANY use (type)value casting.
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
 #pragma GCC diagnostic ignored "-Wold-style-cast"
+#endif
 static const in_addr_t kInaddrAny = INADDR_ANY;
 static const in_addr_t kInaddrLoopback = INADDR_LOOPBACK;
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
 #pragma GCC diagnostic error "-Wold-style-cast"
+#endif
 
 //     /* Structure describing an Internet socket address.  */
 //     struct sockaddr_in {
@@ -77,6 +81,7 @@ uint16_t InetAddress::ToPort() const {
   return sockets::NetworkToHost16(addr_.sin_port);
 }
 
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
 static __thread char t_resolve_buffer[64 * 1024];
 
 bool InetAddress::Resolve(StringArg hostname, InetAddress* out) {
@@ -103,6 +108,7 @@ bool InetAddress::Resolve(StringArg hostname, InetAddress* out) {
     return false;
   }
 }
+#endif
 
 }  // namespace net
 }  // namespace muduo_cpp11

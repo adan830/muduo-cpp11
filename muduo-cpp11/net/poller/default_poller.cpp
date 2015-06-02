@@ -17,11 +17,15 @@ namespace muduo_cpp11 {
 namespace net {
 
 Poller* Poller::NewDefaultPoller(EventLoop* loop) {
+#if defined(__MACH__) || defined(__ANDROID_API__)
+  return new PollPoller(loop);
+#else
   if (::getenv("MUDUO_CPP11_USE_POLL")) {
     return new PollPoller(loop);
   } else {
     return new EPollPoller(loop);
   }
+#endif
 }
 
 }  // namespace net

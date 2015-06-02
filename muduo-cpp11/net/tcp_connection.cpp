@@ -27,9 +27,11 @@ namespace muduo_cpp11 {
 namespace net {
 
 void DefaultConnectionCallback(const TcpConnectionPtr& conn) {
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
   VLOG(1) << conn->local_address().ToIpPort() << " -> "
           << conn->peer_address().ToIpPort() << " is "
           << (conn->connected() ? "UP" : "DOWN");
+#endif
   // do not call conn->forceClose(), because some
   // users want to register message callback only.
 }
@@ -57,15 +59,18 @@ TcpConnection::TcpConnection(EventLoop* loop,
   channel_->set_write_callback(std::bind(&TcpConnection::HandleWrite, this));
   channel_->set_close_callback(std::bind(&TcpConnection::HandleClose, this));
   channel_->set_error_callback(std::bind(&TcpConnection::HandleError, this));
-  DLOG(INFO) << "TcpConnection::ctor[" <<  name_ << "] at " << this
-             << " fd=" << sockfd;
+
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
+  DLOG(INFO) << "TcpConnection::ctor[" <<  name_ << "] at " << this << " fd=" << sockfd;
+#endif
+
   socket_->set_keepalive(true);
 }
 
 TcpConnection::~TcpConnection() {
-  DLOG(INFO) << "TcpConnection::dtor[" <<  name_ << "] at " << this
-             << " fd=" << channel_->fd()
-             << " state=" << StateToString();
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
+  DLOG(INFO) << "TcpConnection::dtor[" <<  name_ << "] at " << this << " fd=" << channel_->fd() << " state=" << StateToString();
+#endif
   assert(state_ == kDisconnected);
 }
 
@@ -126,7 +131,11 @@ void TcpConnection::SendInLoop(const void* data, size_t len) {
   bool fault_error = false;
 
   if (state_ == kDisconnected) {
+#if defined(__MACH__) || defined(__ANDROID_API__)
+    LogWarn("disconnected, give up writing");
+#else
     LOG(WARNING) << "disconnected, give up writing";
+#endif
     return;
   }
 
@@ -142,7 +151,11 @@ void TcpConnection::SendInLoop(const void* data, size_t len) {
     } else {  // nwrote < 0
       nwrote = 0;
       if (errno != EWOULDBLOCK) {
+#if defined(__MACH__) || defined(__ANDROID_API__)
+        LogError("TcpConnection::SendInLoop");
+#else
         LOG(ERROR) << "TcpConnection::SendInLoop";
+#endif
         if (errno == EPIPE || errno == ECONNRESET) {  // FIXME: any others?
           fault_error = true;
         }
@@ -285,7 +298,11 @@ void TcpConnection::HandleRead(Timestamp receive_time) {
     HandleClose();
   } else {
     errno = saved_errno;
+#if defined(__MACH__) || defined(__ANDROID_API__)
+    LogError("TcpConnection::HandleRead");
+#else
     LOG(ERROR) << "TcpConnection::HandleRead";
+#endif
     HandleError();
   }
 }
@@ -308,20 +325,29 @@ void TcpConnection::HandleWrite() {
         }
       }
     } else {
+#if defined(__MACH__) || defined(__ANDROID_API__)
+      LogError("TcpConnection::handleWrite");
+#else
       LOG(ERROR) << "TcpConnection::handleWrite";
+#endif
       // if (state_ == kDisconnecting) {
       //   shutdownInLoop();
       // }
     }
   } else {
-    VLOG(1) << "Connection fd = " << channel_->fd()
-            << " is down, no more writing";
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
+    VLOG(1) << "Connection fd = " << channel_->fd() << " is down, no more writing";
+#endif
   }
 }
 
 void TcpConnection::HandleClose() {
   loop_->AssertInLoopThread();
+
+#if !defined(__MACH__) && !defined(__ANDROID_API__)
   VLOG(1) << "fd = " << channel_->fd() << " state = " << state_;
+#endif
+
   assert(state_ == kConnected || state_ == kDisconnecting);
   // we don't close fd, leave it to dtor, so we can find leaks easily.
   set_state(kDisconnected);
@@ -335,8 +361,11 @@ void TcpConnection::HandleClose() {
 
 void TcpConnection::HandleError() {
   int err = sockets::GetSocketError(channel_->fd());
-  LOG(ERROR) << "TcpConnection::HandleError [" << name_
-             << "] - SO_ERROR = " << err << " " << strerror_tl(err);
+#if defined(__MACH__) || defined(__ANDROID_API__)
+  LogError("TcpConnection::HandleError [%d] - SO_ERROR = %d %s", name_.c_str(), err, strerror_tl(err).c_str());
+#else
+  LOG(ERROR) << "TcpConnection::HandleError [" << name_ << "] - SO_ERROR = " << err << " " << strerror_tl(err);
+#endif
 }
 
 }  // namespace net
